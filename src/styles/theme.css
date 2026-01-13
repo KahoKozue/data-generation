@@ -1,0 +1,63 @@
+:root {
+  /* Colors - Light Theme */
+  --bg-app: #f0f2f5;
+  --bg-panel: #ffffff;
+  --bg-input: #ffffff;
+  --border-color: #e1e4e8;
+  --text-primary: #24292e;
+  --text-secondary: #586069;
+  --accent-color: #6264a7;
+  /* Teams Blurple remains */
+  --accent-hover: #50528c;
+  --success-color: #28a745;
+  --error-color: #d73a49;
+  --hover-bg: #f6f8fa;
+
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+
+  /* Typography */
+  --font-family: 'Segoe UI', Inter, system-ui, sans-serif;
+  --font-size-sm: 12px;
+  --font-size-md: 14px;
+  --font-size-lg: 16px;
+
+  /* Layout */
+  --sidebar-width: 350px;
+  --header-height: 50px;
+}
+
+body {
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+  font-family: var(--font-family);
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-app);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
