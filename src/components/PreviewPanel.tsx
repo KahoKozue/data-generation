@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { RenderedView } from './RenderedView';
@@ -6,12 +6,44 @@ import { FileText, Code, Layout } from 'lucide-react';
 
 interface PreviewPanelProps {
     prompt: string;
+    onPromptChange: (value: string) => void;
+    analysisPrompt: string;
+    onAnalysisPromptChange: (value: string) => void;
     jsonResult: string;
+    analysisResult: string;
     status: string;
+    activeTab: 'prompt' | 'json' | 'render' | 'analysis';
+    onTabChange: (tab: 'prompt' | 'json' | 'render' | 'analysis') => void;
+    onAnalyze: () => void;
+    isAnalyzing: boolean;
+    onImport: (content: string) => void;
 }
 
-export const PreviewPanel: React.FC<PreviewPanelProps> = ({ prompt, jsonResult, status }) => {
-    const [activeTab, setActiveTab] = useState<'prompt' | 'json' | 'render'>('prompt');
+export const PreviewPanel: React.FC<PreviewPanelProps> = ({
+    prompt,
+    onPromptChange,
+    analysisPrompt,
+    onAnalysisPromptChange,
+    jsonResult,
+    analysisResult,
+    status,
+    activeTab,
+    onTabChange,
+    onAnalyze,
+    isAnalyzing,
+    onImport
+}) => {
+    const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const content = e.target?.result as string;
+            onImport(content);
+        };
+        reader.readAsText(file);
+    };
 
     const parsedData = useMemo(() => {
         try {
@@ -55,28 +87,49 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({ prompt, jsonResult, 
             <div className="preview-tabs">
                 <button
                     className={`tab-btn ${activeTab === 'prompt' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('prompt')}
+                    onClick={() => onTabChange('prompt')}
                 >
-                    <FileText size={16} /> Prompt預覽
+                    <FileText size={16} /> Prompt設定
                 </button>
                 <button
                     className={`tab-btn ${activeTab === 'json' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('json')}
+                    onClick={() => onTabChange('json')}
                 >
                     <Code size={16} /> JSON預覽
                 </button>
                 <button
                     className={`tab-btn ${activeTab === 'render' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('render')}
+                    onClick={() => onTabChange('render')}
                 >
                     <Layout size={16} /> 顯示對話
+                </button>
+                <button
+                    className={`tab-btn ${activeTab === 'analysis' ? 'active' : ''}`}
+                    onClick={() => onTabChange('analysis')}
+                >
+                    <FileText size={16} /> 意圖判斷
                 </button>
             </div>
 
             <div className="preview-content">
                 {activeTab === 'prompt' && (
-                    <div className="text-view">
-                        <pre>{prompt}</pre>
+                    <div className="prompt-editor-container">
+                        <div className="prompt-section">
+                            <label>對話生成 Prompt</label>
+                            <textarea
+                                value={prompt}
+                                onChange={(e) => onPromptChange(e.target.value)}
+                                className="prompt-textarea"
+                            />
+                        </div>
+                        <div className="prompt-section">
+                            <label>意圖判斷 Prompt</label>
+                            <textarea
+                                value={analysisPrompt}
+                                onChange={(e) => onAnalysisPromptChange(e.target.value)}
+                                className="prompt-textarea"
+                            />
+                        </div>
                     </div>
                 )}
                 {activeTab === 'json' && (
@@ -88,6 +141,39 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({ prompt, jsonResult, 
                 )}
                 {activeTab === 'render' && (
                     <RenderedView data={parsedData} />
+                )}
+                {activeTab === 'analysis' && (
+                    <div className="analysis-view">
+                        <div className="analysis-toolbar">
+                            <button className="action-btn primary" onClick={onAnalyze} disabled={isAnalyzing}>
+                                {isAnalyzing ? '分析中...' : '開始分析 (Analyze)'}
+                            </button>
+                            <div className="file-input-wrapper">
+                                <button className="action-btn secondary">匯入對話 (Import)</button>
+                                <input type="file" accept=".json" onChange={handleFileUpload} />
+                            </div>
+                        </div>
+                        <div className="analysis-result">
+                            {analysisResult ? (
+                                <div
+                                    className="markdown-body"
+                                    dangerouslySetInnerHTML={{
+                                        __html: analysisResult
+                                            .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+                                            .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+                                            .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+                                            .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
+                                            .replace(/^\- (.*$)/gim, '<li>$1</li>')
+                                            .replace(/\n/gim, '<br />')
+                                    }}
+                                />
+                            ) : (
+                                <div className="empty-state">
+                                    請點擊「開始分析」或匯入檔案
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 )}
             </div>
 
@@ -158,6 +244,113 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({ prompt, jsonResult, 
           padding: 0 16px;
           font-size: 12px;
         }
+        .prompt-editor-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            padding: 10px;
+            gap: 10px;
+            overflow-y: auto;
+        }
+        .prompt-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .prompt-section label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+        .prompt-textarea {
+            flex: 1;
+            background: var(--bg-input);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 10px;
+            font-family: monospace;
+            resize: none;
+            min-height: 150px;
+        }
+        .analysis-view {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        .analysis-toolbar {
+            padding: 10px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            gap: 10px;
+            background: var(--bg-panel);
+        }
+        .action-btn {
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+            border: none;
+        }
+        .action-btn.primary {
+            background: var(--accent-color);
+            color: white;
+        }
+        .action-btn.primary:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+        .action-btn.secondary {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+        .file-input-wrapper input[type=file] {
+            font-size: 100px;
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+        .analysis-result {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-family: monospace;
+            color: var(--text-primary);
+            line-height: 1.5;
+        }
+        .empty-state {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-secondary);
+        }
+        .markdown-body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+        .markdown-body h1, .markdown-body h2, .markdown-body h3 {
+            margin-top: 16px;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .markdown-body h1 { font-size: 1.5em; border-bottom: 1px solid var(--border-color); padding-bottom: 0.3em; }
+        .markdown-body h2 { font-size: 1.3em; }
+        .markdown-body h3 { font-size: 1.1em; }
+
+
       `}</style>
         </div>
     );

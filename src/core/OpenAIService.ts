@@ -19,7 +19,8 @@ export class OpenAIService {
 
     public async generateStream(
         systemPrompt: string,
-        onChunk: (chunk: string) => void
+        onChunk: (chunk: string) => void,
+        userContent: string = "Start simulation."
     ): Promise<string> {
         if (!this.client) {
             throw new Error("API Key not set");
@@ -33,7 +34,7 @@ export class OpenAIService {
                 model: "gpt-5.1",
                 messages: [
                     { role: "system", content: systemPrompt },
-                    { role: "user", content: "Start simulation." }
+                    { role: "user", content: userContent }
                 ],
                 stream: true,
                 max_completion_tokens: 128000

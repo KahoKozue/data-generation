@@ -10,11 +10,11 @@ export class GeminiService {
         this.model = this.genAI.getGenerativeModel({ model: "gemini-3-pro-preview" });
     }
 
-    async generateStream(systemPrompt: string, onChunk: (chunk: string) => void): Promise<string> {
+    async generateStream(systemPrompt: string, onChunk: (chunk: string) => void, userContent: string = "Start simulation."): Promise<string> {
         try {
             const result = await this.model.generateContentStream({
                 contents: [
-                    { role: "user", parts: [{ text: systemPrompt + "\n\nStart simulation." }] }
+                    { role: "user", parts: [{ text: systemPrompt + "\n\n" + userContent }] }
                 ],
                 generationConfig: {
                     maxOutputTokens: 65536,
