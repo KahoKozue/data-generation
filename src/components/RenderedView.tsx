@@ -76,7 +76,7 @@ export const RenderedView: React.FC<RenderedViewProps> = ({ data }) => {
 
       <style>{`
         .teams-container {
-          padding: 20px;
+          padding: 0;
           background: #1f1f1f;
           height: 100%;
           overflow-y: auto;
@@ -94,9 +94,9 @@ export const RenderedView: React.FC<RenderedViewProps> = ({ data }) => {
         .view-toggle {
             display: flex;
             gap: 10px;
-            margin-bottom: 20px;
+            margin: 12px 12px 8px 12px;
             background: rgba(255,255,255,0.05);
-            padding: 5px;
+            padding: 6px;
             border-radius: 6px;
         }
         .toggle-btn {
@@ -116,6 +116,7 @@ export const RenderedView: React.FC<RenderedViewProps> = ({ data }) => {
         .message-item {
           display: flex;
           gap: 10px;
+          padding: 10px 12px;
         }
         .avatar {
           width: 32px;

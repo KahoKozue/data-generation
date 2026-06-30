@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import type { SimulationParameters } from '../core/types';
-import { OPTIONS } from '../core/types';
-import { ShieldAlert, Cpu, Play, FolderOpen, ChevronLeft, ChevronRight, Trash2, Copy } from 'lucide-react';
+import type { SimulationParameters, ModelKey, GenerationMode, DualAgentConfig } from '../core/types';
+import { OPTIONS, MODEL_LABELS } from '../core/types';
+import { ShieldAlert, Cpu, Play, FolderOpen, ChevronLeft, ChevronRight, Trash2, Copy, Users, ArrowLeftRight, Download } from 'lucide-react';
 
 interface ControlPanelProps {
   parameters: SimulationParameters;
@@ -10,16 +10,36 @@ interface ControlPanelProps {
   onApiKeyChange: (key: string) => void;
   geminiKey: string;
   onGeminiKeyChange: (key: string) => void;
-  selectedModel: 'gpt' | 'gemini';
-  onModelChange: (model: 'gpt' | 'gemini') => void;
+  anthropicKey: string;
+  onAnthropicKeyChange: (key: string) => void;
+  selectedModel: ModelKey;
+  onModelChange: (model: ModelKey) => void;
+  generationMode: GenerationMode;
+  onGenerationModeChange: (mode: GenerationMode) => void;
+  dualConfig: DualAgentConfig;
+  onDualConfigChange: (cfg: DualAgentConfig) => void;
+  hasTrace: boolean;
+  onExportTrace: () => void;
   onGenerate: () => void;
-  onSave: () => void;
+  onSave: () => void | Promise<void>;
   onCopy: () => void;
   onClear: () => void;
   isGenerating: boolean;
   collapsed: boolean;
   onToggleCollapse: () => void;
 }
+
+const MODEL_KEYS: ModelKey[] = ['gpt', 'gemini', 'claude'];
+const KEY_LABEL: Record<ModelKey, string> = {
+  gpt: 'OpenAI API Key',
+  gemini: 'Gemini API Key',
+  claude: 'Anthropic API Key',
+};
+const KEY_PLACEHOLDER: Record<ModelKey, string> = {
+  gpt: 'sk-...',
+  gemini: 'AIza...',
+  claude: 'sk-ant-...',
+};
 
 export const ControlPanel: React.FC<ControlPanelProps> = ({
   parameters,
@@ -28,8 +48,16 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   onApiKeyChange,
   geminiKey,
   onGeminiKeyChange,
+  anthropicKey,
+  onAnthropicKeyChange,
   selectedModel,
   onModelChange,
+  generationMode,
+  onGenerationModeChange,
+  dualConfig,
+  onDualConfigChange,
+  hasTrace,
+  onExportTrace,
   onGenerate,
   onSave,
   onCopy,
@@ -39,6 +67,28 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   onToggleCollapse
 }) => {
   const [activeTab, setActiveTab] = useState<'preset' | 'knobs' | 'output'>('preset');
+
+  const keyValue: Record<ModelKey, string> = { gpt: apiKey, gemini: geminiKey, claude: anthropicKey };
+  const keySetter: Record<ModelKey, (v: string) => void> = {
+    gpt: onApiKeyChange,
+    gemini: onGeminiKeyChange,
+    claude: onAnthropicKeyChange,
+  };
+
+  const renderKeyInput = (model: ModelKey) => (
+    <div className="api-input" key={model}>
+      <label>{KEY_LABEL[model]}</label>
+      <input
+        type="password"
+        value={keyValue[model]}
+        onChange={(e) => keySetter[model](e.target.value)}
+        placeholder={KEY_PLACEHOLDER[model]}
+      />
+    </div>
+  );
+
+  // 雙 AI 模式需要的金鑰（攻守兩模型，去重）
+  const dualKeyModels = Array.from(new Set<ModelKey>([dualConfig.attacker, dualConfig.victim]));
 
   if (collapsed) {
     return (
@@ -56,37 +106,78 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
       </div>
 
       <div className="api-section">
-        <div className="model-selector">
-          <label>模型選擇 (Model)</label>
-          <select
-            value={selectedModel}
-            onChange={(e) => onModelChange(e.target.value as 'gpt' | 'gemini')}
+        <div className="mode-toggle">
+          <button
+            className={`mode-btn ${generationMode === 'single' ? 'active' : ''}`}
+            onClick={() => onGenerationModeChange('single')}
           >
-            <option value="gpt">GPT-5.1</option>
-            <option value="gemini">Gemini 3.0 Pro</option>
-          </select>
+            <Cpu size={14} /> 單 AI 腳本
+          </button>
+          <button
+            className={`mode-btn ${generationMode === 'dual' ? 'active' : ''}`}
+            onClick={() => onGenerationModeChange('dual')}
+          >
+            <Users size={14} /> 雙 AI 對話
+          </button>
         </div>
 
-        {selectedModel === 'gpt' ? (
-          <div className="api-input">
-            <label>OpenAI API Key</label>
-            <input
-              type="password"
-              value={apiKey}
-              onChange={(e) => onApiKeyChange(e.target.value)}
-              placeholder="sk-..."
-            />
-          </div>
+        {generationMode === 'single' ? (
+          <>
+            <div className="model-selector">
+              <label>模型選擇 (Model)</label>
+              <select value={selectedModel} onChange={(e) => onModelChange(e.target.value as ModelKey)}>
+                {MODEL_KEYS.map((m) => <option key={m} value={m}>{MODEL_LABELS[m]}</option>)}
+              </select>
+            </div>
+            {renderKeyInput(selectedModel)}
+          </>
         ) : (
-          <div className="api-input">
-            <label>Gemini API Key</label>
-            <input
-              type="password"
-              value={geminiKey}
-              onChange={(e) => onGeminiKeyChange(e.target.value)}
-              placeholder="AIza..."
-            />
-          </div>
+          <>
+            <div className="dual-grid">
+              <div className="model-selector">
+                <label>攻擊者 (Attacker)</label>
+                <select value={dualConfig.attacker} onChange={(e) => onDualConfigChange({ ...dualConfig, attacker: e.target.value as ModelKey })}>
+                  {MODEL_KEYS.map((m) => <option key={m} value={m}>{MODEL_LABELS[m]}</option>)}
+                </select>
+              </div>
+              <button
+                className="swap-btn"
+                title="攻守對調 (counterbalance)"
+                onClick={() => onDualConfigChange({ ...dualConfig, attacker: dualConfig.victim, victim: dualConfig.attacker })}
+              >
+                <ArrowLeftRight size={16} />
+              </button>
+              <div className="model-selector">
+                <label>目標 (Victim)</label>
+                <select value={dualConfig.victim} onChange={(e) => onDualConfigChange({ ...dualConfig, victim: e.target.value as ModelKey })}>
+                  {MODEL_KEYS.map((m) => <option key={m} value={m}>{MODEL_LABELS[m]}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div className="dual-grid2">
+              <div className="model-selector">
+                <label>意圖 / GT</label>
+                <select value={dualConfig.intent} onChange={(e) => onDualConfigChange({ ...dualConfig, intent: e.target.value as DualAgentConfig['intent'] })}>
+                  <option value="malicious">malicious（惡意）</option>
+                  <option value="benign">benign（良性對照）</option>
+                </select>
+              </div>
+              <div className="model-selector">
+                <label>回合數 (Rounds)</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={40}
+                  value={dualConfig.rounds}
+                  onChange={(e) => onDualConfigChange({ ...dualConfig, rounds: Math.max(1, parseInt(e.target.value) || 1) })}
+                />
+              </div>
+            </div>
+            <div className="hint-text">一來一往＝1 回合＝2 則訊息；固定長度硬切（定版 15–20 回合）。</div>
+
+            {dualKeyModels.map((m) => renderKeyInput(m))}
+          </>
         )}
       </div>
 
@@ -223,7 +314,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
       <div className="actions">
         <button className="btn-primary" onClick={onGenerate} disabled={isGenerating}>
-          <Play size={16} /> {isGenerating ? '生成中...' : '開始生成 (Generate)'}
+          <Play size={16} /> {isGenerating ? '生成中...' : generationMode === 'dual' ? '雙 AI 生成 (Generate)' : '開始生成 (Generate)'}
         </button>
         <button className="btn-secondary" onClick={onSave}>
           <FolderOpen size={16} /> 另存新檔 (Save)
@@ -231,6 +322,11 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
         <button className="btn-secondary" onClick={onCopy}>
           <Copy size={16} /> 複製內容 (Copy)
         </button>
+        {hasTrace && (
+          <button className="btn-secondary" onClick={onExportTrace}>
+            <Download size={16} /> 下載生成 trace
+          </button>
+        )}
         <button className="btn-danger" onClick={onClear} disabled={isGenerating}>
           <Trash2 size={16} /> 清空對話 (Clear)
         </button>
@@ -270,7 +366,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
           flex-direction: column;
           gap: 12px;
         }
-        .model-selector select, .api-input input {
+        .model-selector select, .model-selector input, .api-input input {
           width: 100%;
           background: var(--bg-input);
           border: 1px solid var(--border-color);
@@ -278,6 +374,60 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
           padding: 8px;
           margin-top: 4px;
           border-radius: 4px;
+        }
+        .mode-toggle {
+          display: flex;
+          gap: 6px;
+          background: var(--hover-bg);
+          padding: 4px;
+          border-radius: 8px;
+        }
+        .mode-btn {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          padding: 8px;
+          border: none;
+          background: transparent;
+          color: var(--text-secondary);
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 13px;
+          font-weight: 600;
+        }
+        .mode-btn.active {
+          background: var(--accent-color);
+          color: #fff;
+        }
+        .dual-grid {
+          display: grid;
+          grid-template-columns: 1fr auto 1fr;
+          align-items: end;
+          gap: 8px;
+        }
+        .dual-grid2 {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+        }
+        .swap-btn {
+          height: 36px;
+          width: 36px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: 1px solid var(--border-color);
+          background: var(--bg-input);
+          color: var(--accent-color);
+          border-radius: 6px;
+          cursor: pointer;
+        }
+        .swap-btn:hover { background: var(--hover-bg); }
+        .model-selector label {
+          font-size: 12px;
+          color: var(--text-secondary);
         }
         .api-input label, .model-selector label {
             font-size: 12px;

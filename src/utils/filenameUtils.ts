@@ -17,7 +17,8 @@ const SLUG_MAP: Record<string, string> = {
 export const generateFilename = (params: SimulationParameters): string => {
     const presetSlug = SLUG_MAP[params.preset] || "preset";
 
-    // Format: teams_data_tech_[preset]_A[authority]U[urgency]L[load]_[timestamp].json
+    // 不含副檔名（呼叫端 handleSave 會依存檔型別補上 .json / .md）
+    // Format: teams_data_tech_[preset]_A[authority]U[urgency]L[load]_[timestamp]
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-    return `teams_data_tech_${presetSlug}_A${params.authority}U${params.urgency}L${params.load}_${timestamp}.json`;
+    return `teams_data_tech_${presetSlug}_A${params.authority}U${params.urgency}L${params.load}_${timestamp}`;
 };

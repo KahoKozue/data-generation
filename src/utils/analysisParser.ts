@@ -1,4 +1,6 @@
 export type RiskLevel = "high" | "medium" | "low" | "unknown";
+// 五分法（meeting24 量表顆粒度：三分法 → 五分法）
+export type RiskLevel5 = "極高" | "中高" | "中" | "中低" | "極低" | "unknown";
 export type Verdict = "malicious" | "benign" | "uncertain";
 export type DimensionLabel = "語意目的" | "語用操縱策略" | "情境一致性" | "決策點" | string;
 
@@ -24,7 +26,7 @@ export interface RiskProfile {
 
 export interface AnalysisStructured {
   verdict: Verdict;
-  riskLevel?: RiskLevel;
+  riskLevel?: RiskLevel5;
   primaryRisk?: string;
   summary?: string;
   decisionPoints?: DecisionPoint[];
@@ -49,6 +51,24 @@ const coerceRiskLevel = (value: string | undefined): RiskLevel => {
   if (normalized.startsWith("h")) return "high";
   if (normalized.startsWith("m")) return "medium";
   if (normalized.startsWith("l")) return "low";
+  return "unknown";
+};
+
+// 五分法：極高/中高/中/中低/極低（先比較長詞，避免「中高」被「中」截走）
+const coerceRiskLevel5 = (value: string | undefined): RiskLevel5 => {
+  if (!value) return "unknown";
+  const v = value.trim();
+  if (v.includes("極高")) return "極高";
+  if (v.includes("中高")) return "中高";
+  if (v.includes("中低")) return "中低";
+  if (v.includes("極低")) return "極低";
+  if (v.includes("中")) return "中";
+  const lower = v.toLowerCase();
+  if (/(very high|critical)/.test(lower)) return "極高";
+  if (lower.startsWith("h") || lower.includes("high")) return "中高";
+  if (/(very low|minimal)/.test(lower)) return "極低";
+  if (lower.startsWith("l") || lower.includes("low")) return "中低";
+  if (lower.startsWith("m") || lower.includes("medium")) return "中";
   return "unknown";
 };
 
@@ -97,7 +117,7 @@ export const parseAnalysis = (text: string): AnalysisStructured | null => {
     const verdict = coerceVerdict(
       data.verdict || data.label || data.classification || data.result
     );
-    const riskLevel = coerceRiskLevel(data.risk_level || data.riskLevel || data.severity);
+    const riskLevel = coerceRiskLevel5(data.risk_level || data.riskLevel || data.severity);
     const decisionPoints: DecisionPoint[] = normalizeArray(data.decision_points || data.decisions).map((d: any) => ({
       label: d.label || d.name || "",
       evidence: d.evidence || d.quote,

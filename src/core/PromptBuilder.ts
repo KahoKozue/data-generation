@@ -78,6 +78,22 @@ export class PromptBuilder {
         }
     }
 
+    // 攻守雙方共用的場景卡（雙 agent 對話模式用）：只含 Preset×三旋鈕＋產業＋語言，
+    // 不含 malicious/benign 指示與輸出格式，惡意/良性差異由各自私有角色 prompt 決定。
+    public buildSceneCard(): string {
+        const { preset, authority, urgency, load, timeSpan } = this.parameters;
+        return `產業：軟體 / IT / 高科技製造業
+平台：Microsoft Teams（企業內部與外部協作頻道）
+時間跨度：${timeSpan}
+情境預設：
+${this.getPresetDescription(preset)}
+旋鈕（請轉成可觀察的對話行為）：
+Authority：${this.getAuthorityDescription(authority)}
+Urgency：${this.getUrgencyDescription(urgency)}
+Load：${this.getLoadDescription(load)}
+語言風格：繁體中文、台灣職場 Teams 口語，可少量英文縮寫（ASAP FYI sync ping workaround）；訊息長短不一、避免機械化。`;
+    }
+
     public buildSystemPrompt(): string {
         const {
             preset,

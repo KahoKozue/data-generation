@@ -6,8 +6,8 @@ export class GeminiService {
 
     constructor(apiKey: string) {
         this.genAI = new GoogleGenerativeAI(apiKey);
-        // Mapping user's "Gemini 3.0 Pro" request to the actual latest model
-        this.model = this.genAI.getGenerativeModel({ model: "gemini-3-pro-preview" });
+        // Gemini 3.5 Flash：思考預設即 medium，Gemini 3.x 官方要求移除 temperature/top_p/top_k（此處不設）
+        this.model = this.genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
     }
 
     async generateStream(systemPrompt: string, onChunk: (chunk: string) => void, userContent: string = "Start simulation."): Promise<string> {

@@ -27,16 +27,17 @@ export class OpenAIService {
         }
 
         try {
-            console.log("[OpenAI] Starting generation with gpt5.1 using chat.completions API...");
+            console.log("[OpenAI] Starting generation with gpt-5.4-mini (reasoning_effort=medium)...");
 
-            // Fallback: Use standard chat.completions API with gpt5.1 model
+            // GPT-5.4-mini：reasoning 模型不接受自訂 temperature（pilot 已確認），故不送 temperature
             const stream = await this.client.chat.completions.create({
-                model: "gpt-5.1",
+                model: "gpt-5.4-mini",
                 messages: [
                     { role: "system", content: systemPrompt },
                     { role: "user", content: userContent }
                 ],
                 stream: true,
+                reasoning_effort: "medium",
                 max_completion_tokens: 128000
             });
 

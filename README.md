@@ -1,45 +1,73 @@
-# Social Engineering Chat Data Generator
+# React + TypeScript + Vite
 
-用於資安研究的社交工程對話資料生成工具。模擬 Microsoft Teams 風格的內部對話，可批次產生具有不同攻擊特徵的合成訓練資料，並內建分析模組輔助判斷風險。
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-## 用途
+Currently, two official plugins are available:
 
-- 資安意識訓練資料集建立
-- 社交工程偵測模型的合成標註資料來源
-- 紅隊演練情境設計
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
-## 功能
+## React Compiler
 
-**生成端**
-- 可調整權威程度（A0 同事平級 / A1 代理身份 / ...）
-- 可調整急迫程度與認知負載
-- 可設定意圖（`malicious` / `benign`）
-- 可設定訊息筆數與時間跨度
-- 內建多組預設情境（技術挫折、影子 IT 等）
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
-**分析端**
-- 基於語意、語用操縱策略、情境一致性三維度評估
-- 輸出可追溯的 Markdown 分析報告
-- 使用 GPT-4 / Gemini 作為後端
+## Expanding the ESLint configuration
 
-## 技術棧
+If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
 
-- React + TypeScript + Vite
-- OpenAI API（生成與分析）
-- Google Gemini API（生成）
+```js
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      // Other configs...
 
-## 快速開始
+      // Remove tseslint.configs.recommended and replace with this
+      tseslint.configs.recommendedTypeChecked,
+      // Alternatively, use this for stricter rules
+      tseslint.configs.strictTypeChecked,
+      // Optionally, add this for stylistic rules
+      tseslint.configs.stylisticTypeChecked,
 
-```bash
-npm install
-npm run dev
+      // Other configs...
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      // other options...
+    },
+  },
+])
 ```
 
-在 UI 的設定欄填入 OpenAI 或 Gemini API Key 後即可使用。
+You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
 
-## 環境變數
+```js
+// eslint.config.js
+import reactX from 'eslint-plugin-react-x'
+import reactDom from 'eslint-plugin-react-dom'
 
-```bash
-cp .env.example .env
-# 填入 OPENAI_API_KEY 或 GEMINI_API_KEY
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      // Other configs...
+      // Enable lint rules for React
+      reactX.configs['recommended-typescript'],
+      // Enable lint rules for React DOM
+      reactDom.configs.recommended,
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      // other options...
+    },
+  },
+])
 ```
