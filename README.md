@@ -71,3 +71,7 @@ export default defineConfig([
   },
 ])
 ```
+
+## License
+
+MIT — see [LICENSE](LICENSE).
